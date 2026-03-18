@@ -3,6 +3,38 @@
 //  Roles: admin | technician | user
 // ═══════════════════════════════════════════════════════════════════════════
 
+// ── WHATSAPP NOTIFICATION CONFIG ────────────────────────────────────────────
+// Uses CallMeBot (free). Follow steps below to get your API key:
+//  1. Save +34644473855 in your WhatsApp contacts (name it "CallMeBot")
+//  2. Send this exact message to that number on WhatsApp:
+//       I allow callmebot to send me messages
+//  3. You will receive your API key in a reply — paste it below.
+const WA = {
+  phone:  '919915999043',   // your number with country code, no +
+  apiKey: 'YOUR_API_KEY',   // <-- replace with the key you receive from CallMeBot
+};
+
+async function sendWhatsAppAlert(ticket) {
+  if (WA.apiKey === 'YOUR_API_KEY') return; // skip until key is set
+  const msg = encodeURIComponent(
+    `🎫 New Ticket Raised!\n` +
+    `ID: ${ticket.id}\n` +
+    `Title: ${ticket.title}\n` +
+    `Priority: ${ticket.priority.toUpperCase()}\n` +
+    `Category: ${ticket.category}\n` +
+    `Raised By: ${getUserName(ticket.raisedBy)}\n` +
+    `Time: ${new Date().toLocaleString()}`
+  );
+  try {
+    await fetch(
+      `https://api.callmebot.com/whatsapp.php?phone=${WA.phone}&text=${msg}&apikey=${WA.apiKey}`,
+      { mode: 'no-cors' }
+    );
+  } catch (e) {
+    console.warn('WhatsApp notification failed:', e);
+  }
+}
+
 // ── STORAGE KEYS ────────────────────────────────────────────────────────────
 const K = {
   users:      'tf_users',
@@ -485,10 +517,12 @@ document.getElementById('ticket-form').addEventListener('submit', e => {
     editingTicketId = null;
     showToast('Ticket updated');
   } else {
-    tickets.push({ id:genId(), title, description:desc, category, priority:selectedPriority,
-                   status:'open', raisedBy:currentUser.id, assignedTo:assignee,
-                   createdAt:new Date().toISOString() });
+    const newTicket = { id:genId(), title, description:desc, category, priority:selectedPriority,
+                        status:'open', raisedBy:currentUser.id, assignedTo:assignee,
+                        createdAt:new Date().toISOString() };
+    tickets.push(newTicket);
     save(K.tickets, tickets);
+    sendWhatsAppAlert(newTicket);
     showToast('Ticket submitted!');
   }
   editingTicketId = null;
