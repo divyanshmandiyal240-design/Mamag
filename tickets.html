@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TicketFlow — Ticket Management</title>
+  <link rel="stylesheet" href="tickets.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">TF</div>
+      <span>TicketFlow</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-view="dashboard">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </a>
+      <a href="#" class="nav-item" data-view="tickets">
+        <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+        All Tickets
+        <span class="nav-badge" id="nav-count">0</span>
+      </a>
+      <a href="#" class="nav-item" data-view="create">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        New Ticket
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-avatar">DM</div>
+      <div>
+        <div class="user-name">Divyansh M.</div>
+        <div class="user-role">Admin</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- TOP BAR -->
+    <header class="topbar">
+      <button class="menu-btn" id="menu-btn">
+        <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div class="topbar-search">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="search-input" placeholder="Search tickets..."/>
+      </div>
+      <div class="topbar-right">
+        <div class="notif-btn" id="notif-btn">
+          <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+          <span class="notif-dot"></span>
+        </div>
+      </div>
+    </header>
+
+    <!-- VIEWS -->
+    <div class="content">
+
+      <!-- DASHBOARD VIEW -->
+      <div class="view active" id="view-dashboard">
+        <div class="page-header">
+          <h1>Dashboard</h1>
+          <p>Overview of all your tickets</p>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card stat-total">
+            <div class="stat-icon">
+              <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+            </div>
+            <div>
+              <div class="stat-num" id="stat-total">0</div>
+              <div class="stat-label">Total Tickets</div>
+            </div>
+          </div>
+          <div class="stat-card stat-open">
+            <div class="stat-icon">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </div>
+            <div>
+              <div class="stat-num" id="stat-open">0</div>
+              <div class="stat-label">Open</div>
+            </div>
+          </div>
+          <div class="stat-card stat-progress">
+            <div class="stat-icon">
+              <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+            </div>
+            <div>
+              <div class="stat-num" id="stat-progress">0</div>
+              <div class="stat-label">In Progress</div>
+            </div>
+          </div>
+          <div class="stat-card stat-closed">
+            <div class="stat-icon">
+              <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div>
+              <div class="stat-num" id="stat-closed">0</div>
+              <div class="stat-label">Closed</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-bottom">
+          <div class="recent-tickets">
+            <div class="section-header">
+              <h2>Recent Tickets</h2>
+              <a href="#" class="view-all" data-view="tickets">View all</a>
+            </div>
+            <div id="recent-list"></div>
+          </div>
+          <div class="priority-chart">
+            <div class="section-header"><h2>By Priority</h2></div>
+            <div class="chart-bars" id="chart-bars"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ALL TICKETS VIEW -->
+      <div class="view" id="view-tickets">
+        <div class="page-header">
+          <h1>All Tickets</h1>
+          <button class="btn-primary" id="new-ticket-btn">+ New Ticket</button>
+        </div>
+        <div class="filters">
+          <button class="filter-btn active" data-filter="all">All</button>
+          <button class="filter-btn" data-filter="open">Open</button>
+          <button class="filter-btn" data-filter="in-progress">In Progress</button>
+          <button class="filter-btn" data-filter="closed">Closed</button>
+          <select class="filter-select" id="priority-filter">
+            <option value="all">All Priorities</option>
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+        </div>
+        <div class="ticket-table-wrap">
+          <table class="ticket-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Category</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tickets-tbody"></tbody>
+          </table>
+          <div class="empty-state" id="empty-state">
+            <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+            <p>No tickets found</p>
+            <button class="btn-primary" id="empty-create-btn">Create your first ticket</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CREATE TICKET VIEW -->
+      <div class="view" id="view-create">
+        <div class="page-header">
+          <h1 id="form-title">Create New Ticket</h1>
+          <p>Fill in the details below</p>
+        </div>
+        <div class="form-card">
+          <form id="ticket-form">
+            <input type="hidden" id="edit-id"/>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Title <span class="req">*</span></label>
+                <input type="text" id="f-title" placeholder="Brief description of the issue" required/>
+              </div>
+              <div class="form-group">
+                <label>Category <span class="req">*</span></label>
+                <select id="f-category" required>
+                  <option value="">Select category</option>
+                  <option value="Bug">Bug</option>
+                  <option value="Feature Request">Feature Request</option>
+                  <option value="Support">Support</option>
+                  <option value="Design">Design</option>
+                  <option value="Performance">Performance</option>
+                  <option value="Security">Security</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Description <span class="req">*</span></label>
+              <textarea id="f-desc" rows="5" placeholder="Detailed description of the issue..." required></textarea>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Priority</label>
+                <div class="priority-selector" id="priority-selector">
+                  <button type="button" class="prio-btn" data-value="low">Low</button>
+                  <button type="button" class="prio-btn active" data-value="medium">Medium</button>
+                  <button type="button" class="prio-btn" data-value="high">High</button>
+                  <button type="button" class="prio-btn" data-value="critical">Critical</button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Assigned To</label>
+                <input type="text" id="f-assignee" placeholder="Name or email"/>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn-secondary" id="cancel-form">Cancel</button>
+              <button type="submit" class="btn-primary" id="submit-btn">Create Ticket</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- TICKET DETAIL MODAL -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal" id="modal">
+      <button class="modal-close" id="modal-close">&times;</button>
+      <div class="modal-header">
+        <div>
+          <div class="modal-id" id="modal-id"></div>
+          <h2 id="modal-title"></h2>
+        </div>
+        <div class="modal-badges">
+          <span class="badge-priority" id="modal-priority"></span>
+          <span class="badge-status" id="modal-status"></span>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div class="modal-section">
+          <label>Description</label>
+          <p id="modal-desc"></p>
+        </div>
+        <div class="modal-meta">
+          <div><label>Category</label><span id="modal-cat"></span></div>
+          <div><label>Assigned To</label><span id="modal-assignee"></span></div>
+          <div><label>Created</label><span id="modal-date"></span></div>
+        </div>
+        <div class="modal-section">
+          <label>Update Status</label>
+          <div class="status-buttons">
+            <button class="status-btn" data-status="open">Open</button>
+            <button class="status-btn" data-status="in-progress">In Progress</button>
+            <button class="status-btn" data-status="closed">Closed</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-danger" id="modal-delete">Delete Ticket</button>
+        <button class="btn-secondary" id="modal-edit">Edit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <script src="tickets.js"></script>
+</body>
+</html>
