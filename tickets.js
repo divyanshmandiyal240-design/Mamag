@@ -22,6 +22,7 @@ async function sendEmailAlert(ticket) {
       category:     ticket.category,
       description:  ticket.description,
       raised_by:    getUserName(ticket.raisedBy),
+      client:       getClientName(ticket.clientId),
       status:       'Open',
       time:         new Date().toLocaleString(),
     }, EJS.publicKey);
@@ -36,18 +37,26 @@ const K = {
   users:      'tf_users',
   tickets:    'tf_tickets',
   categories: 'tf_categories',
+  clients:    'tf_clients',
   session:    'tf_session',
 };
 
 // ── DEFAULT SEED DATA ────────────────────────────────────────────────────────
 function seedData() {
+  if (!ls(K.clients)) {
+    save(K.clients, [
+      { id:'cl1', name:'Acme Corp',      color:'#6c47ff' },
+      { id:'cl2', name:'TechStart Ltd',  color:'#3b82f6' },
+      { id:'cl3', name:'RetailPlus',     color:'#22c55e' },
+    ]);
+  }
   if (!ls(K.users)) {
     save(K.users, [
-      { id:'u1', username:'admin',  password:'admin123',  name:'Admin User',    role:'admin'      },
-      { id:'u2', username:'tech1',  password:'tech123',   name:'Alex (Tech)',   role:'technician' },
-      { id:'u3', username:'tech2',  password:'tech456',   name:'Sam (Tech)',    role:'technician' },
-      { id:'u4', username:'user1',  password:'user123',   name:'Divyansh M.',   role:'user'       },
-      { id:'u5', username:'user2',  password:'user456',   name:'Priya K.',      role:'user'       },
+      { id:'u1', username:'admin',  password:'admin123',  name:'Admin User',    role:'admin',       clientId:'' },
+      { id:'u2', username:'tech1',  password:'tech123',   name:'Alex (Tech)',   role:'technician',  clientId:'' },
+      { id:'u3', username:'tech2',  password:'tech456',   name:'Sam (Tech)',    role:'technician',  clientId:'' },
+      { id:'u4', username:'user1',  password:'user123',   name:'Divyansh M.',   role:'user',        clientId:'cl1' },
+      { id:'u5', username:'user2',  password:'user456',   name:'Priya K.',      role:'user',        clientId:'cl2' },
     ]);
   }
   if (!ls(K.categories)) {
@@ -62,11 +71,11 @@ function seedData() {
   }
   if (!ls(K.tickets)) {
     save(K.tickets, [
-      { id:'TF-00001', title:'Login page fails on Safari', description:'Users on Safari 16+ see a blank login page. CORS error in console from auth endpoint.', category:'Bug', priority:'critical', status:'open',        raisedBy:'u4', assignedTo:'u2', createdAt: ago(3) },
-      { id:'TF-00002', title:'Add dark mode toggle',       description:'Users want a dark/light toggle in account settings that persists across sessions.',        category:'Feature Request', priority:'medium', status:'in-progress', raisedBy:'u4', assignedTo:'u2', createdAt: ago(2) },
-      { id:'TF-00003', title:'Dashboard charts slow',      description:'Analytics charts take 6-8 seconds. Suspected unoptimised DB queries.',                    category:'Performance',     priority:'high',   status:'open',        raisedBy:'u5', assignedTo:'',   createdAt: ago(1) },
-      { id:'TF-00004', title:'Update brand colors',        description:'Rebrand rollout — update logo, primary color and all button styles.',                      category:'Design',          priority:'low',    status:'closed',      raisedBy:'u4', assignedTo:'u3', createdAt: ago(5) },
-      { id:'TF-00005', title:'Password reset not sending', description:'Forgot-password flow sends no email. SMTP logs show 550 errors on certain domains.',       category:'Bug',             priority:'high',   status:'in-progress', raisedBy:'u5', assignedTo:'u2', createdAt: ago(4) },
+      { id:'TF-00001', title:'Login page fails on Safari', description:'Users on Safari 16+ see a blank login page. CORS error in console from auth endpoint.', category:'Bug', priority:'critical', status:'open',        raisedBy:'u4', assignedTo:'u2', clientId:'cl1', createdAt: ago(3) },
+      { id:'TF-00002', title:'Add dark mode toggle',       description:'Users want a dark/light toggle in account settings that persists across sessions.',        category:'Feature Request', priority:'medium', status:'in-progress', raisedBy:'u4', assignedTo:'u2', clientId:'cl1', createdAt: ago(2) },
+      { id:'TF-00003', title:'Dashboard charts slow',      description:'Analytics charts take 6-8 seconds. Suspected unoptimised DB queries.',                    category:'Performance',     priority:'high',   status:'open',        raisedBy:'u5', assignedTo:'',   clientId:'cl2', createdAt: ago(1) },
+      { id:'TF-00004', title:'Update brand colors',        description:'Rebrand rollout — update logo, primary color and all button styles.',                      category:'Design',          priority:'low',    status:'closed',      raisedBy:'u4', assignedTo:'u3', clientId:'cl1', createdAt: ago(5) },
+      { id:'TF-00005', title:'Password reset not sending', description:'Forgot-password flow sends no email. SMTP logs show 550 errors on certain domains.',       category:'Bug',             priority:'high',   status:'in-progress', raisedBy:'u5', assignedTo:'u2', clientId:'cl2', createdAt: ago(4) },
     ]);
   }
 }
@@ -79,6 +88,7 @@ function save(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
 function getUsers()      { return ls(K.users)      || []; }
 function getTickets()    { return ls(K.tickets)    || []; }
 function getCategories() { return ls(K.categories) || []; }
+function getClients()    { return ls(K.clients)    || []; }
 function getSession()    { return ls(K.session); }
 
 // ── APP STATE ────────────────────────────────────────────────────────────────
@@ -86,6 +96,7 @@ let currentUser   = null;
 let currentView   = '';
 let filterStatus  = 'all';
 let filterPriority= 'all';
+let filterClient  = 'all';
 let searchQuery   = '';
 let editingTicketId = null;
 let editingUserId   = null;
@@ -104,6 +115,16 @@ function roleCap(r='') { return r.charAt(0).toUpperCase()+r.slice(1); }
 function getUserName(uid) {
   const u = getUsers().find(x => x.id === uid);
   return u ? u.name : uid ? '(deleted)' : '—';
+}
+
+function getClientName(cid) {
+  const c = getClients().find(x => x.id === cid);
+  return c ? c.name : cid ? '(deleted)' : '—';
+}
+
+function getClientColor(cid) {
+  const c = getClients().find(x => x.id === cid);
+  return c ? c.color : '#555';
 }
 
 function showToast(msg, type='success') {
@@ -127,6 +148,7 @@ const CAN = {
   deleteTicket:   () => currentUser.role === 'admin',
   manageUsers:    () => currentUser.role === 'admin',
   manageCategories:()=> currentUser.role === 'admin',
+  manageClients:  () => currentUser.role === 'admin',
 };
 
 // ── NAVIGATION CONFIG ────────────────────────────────────────────────────────
@@ -136,8 +158,9 @@ function navItems() {
     { view:'tickets',   icon:ticketIcon, label: currentUser.role==='user'?'My Tickets':'All Tickets', badge:true },
   ];
   if (CAN.createTicket()) base.push({ view:'create', icon:plusIcon, label:'Raise Ticket' });
-  if (CAN.manageUsers())       base.push({ view:'users',      icon:usersIcon,  label:'Manage Users' });
-  if (CAN.manageCategories())  base.push({ view:'categories', icon:tagIcon,    label:'Categories' });
+  if (CAN.manageUsers())       base.push({ view:'users',      icon:usersIcon,   label:'Manage Users' });
+  if (CAN.manageClients())     base.push({ view:'clients',    icon:clientIcon,  label:'Clients' });
+  if (CAN.manageCategories())  base.push({ view:'categories', icon:tagIcon,     label:'Categories' });
   return base;
 }
 
@@ -147,6 +170,7 @@ const ticketIcon = `<svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2
 const plusIcon   = `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>`;
 const usersIcon  = `<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>`;
 const tagIcon    = `<svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>`;
+const clientIcon = `<svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>`;
 
 // ── LOGIN ────────────────────────────────────────────────────────────────────
 function initLogin() {
@@ -244,6 +268,7 @@ function switchView(name) {
   if (name === 'tickets')     renderTickets();
   if (name === 'create')      setupForm();
   if (name === 'users')       renderUsers();
+  if (name === 'clients')     renderClients();
   if (name === 'categories')  renderCategories();
 
   document.getElementById('sidebar').classList.remove('open');
@@ -289,17 +314,33 @@ function renderDashboard() {
     </div>
   `).join('') : '<p style="color:var(--gray);font-size:.875rem;padding:.5rem 0">No tickets yet.</p>';
 
-  // Priority chart
-  const priorities = ['critical','high','medium','low'];
-  const maxC = Math.max(...priorities.map(p => tickets.filter(t=>t.priority===p).length), 1);
-  document.getElementById('chart-bars').innerHTML = priorities.map(p => {
-    const c = tickets.filter(t=>t.priority===p).length;
-    return `<div class="chart-bar-row">
-      <div class="chart-label">${p.charAt(0).toUpperCase()+p.slice(1)}</div>
-      <div class="chart-track"><div class="chart-fill" style="width:${Math.round(c/maxC*100)}%;background:${pColor(p)}"></div></div>
-      <div class="chart-count" style="color:${pColor(p)}">${c}</div>
-    </div>`;
-  }).join('');
+  // Chart: by client for admin/tech, by priority for user
+  const chartEl = document.getElementById('chart-bars');
+  if (currentUser.role === 'admin') {
+    const clients = getClients();
+    const maxC = Math.max(...clients.map(cl => tickets.filter(t=>t.clientId===cl.id).length), 1);
+    chartEl.innerHTML = clients.map(cl => {
+      const c = tickets.filter(t=>t.clientId===cl.id).length;
+      return `<div class="chart-bar-row">
+        <div class="chart-label" style="width:80px;font-size:.75rem">${esc(cl.name.split(' ')[0])}</div>
+        <div class="chart-track"><div class="chart-fill" style="width:${Math.round(c/maxC*100)}%;background:${cl.color}"></div></div>
+        <div class="chart-count" style="color:${cl.color}">${c}</div>
+      </div>`;
+    }).join('');
+    document.querySelector('.priority-chart .section-header h2').textContent = 'By Client';
+  } else {
+    const priorities = ['critical','high','medium','low'];
+    const maxC = Math.max(...priorities.map(p => tickets.filter(t=>t.priority===p).length), 1);
+    chartEl.innerHTML = priorities.map(p => {
+      const c = tickets.filter(t=>t.priority===p).length;
+      return `<div class="chart-bar-row">
+        <div class="chart-label">${p.charAt(0).toUpperCase()+p.slice(1)}</div>
+        <div class="chart-track"><div class="chart-fill" style="width:${Math.round(c/maxC*100)}%;background:${pColor(p)}"></div></div>
+        <div class="chart-count" style="color:${pColor(p)}">${c}</div>
+      </div>`;
+    }).join('');
+    document.querySelector('.priority-chart .section-header h2').textContent = 'By Priority';
+  }
 }
 
 // ── TICKETS TABLE ────────────────────────────────────────────────────────────
@@ -307,8 +348,9 @@ function filteredTickets() {
   return myTickets().filter(t => {
     const sOk = filterStatus === 'all' || t.status === filterStatus;
     const pOk = filterPriority === 'all' || t.priority === filterPriority;
+    const cOk = filterClient === 'all' || t.clientId === filterClient;
     const qOk = !searchQuery || t.title.toLowerCase().includes(searchQuery) || t.id.toLowerCase().includes(searchQuery);
-    return sOk && pOk && qOk;
+    return sOk && pOk && cOk && qOk;
   });
 }
 
@@ -319,6 +361,16 @@ function renderTickets() {
 
   const newBtn = document.getElementById('new-ticket-btn');
   newBtn.style.display = CAN.createTicket() ? 'inline-flex' : 'none';
+
+  // Client filter — admin only
+  const clientFilterEl = document.getElementById('client-filter');
+  if (currentUser.role === 'admin') {
+    clientFilterEl.style.display = 'block';
+    clientFilterEl.innerHTML = '<option value="all">All Clients</option>' +
+      getClients().map(c => `<option value="${c.id}" ${filterClient===c.id?'selected':''}>${esc(c.name)}</option>`).join('');
+  } else {
+    clientFilterEl.style.display = 'none';
+  }
 
   const tbody = document.getElementById('tickets-tbody');
   const empty = document.getElementById('empty-state');
@@ -337,6 +389,10 @@ function renderTickets() {
         <td><span class="badge badge-${t.priority}">${t.priority.charAt(0).toUpperCase()+t.priority.slice(1)}</span></td>
         <td><span class="badge badge-${t.status}">${statusLabel(t.status)}</span></td>
         <td style="color:var(--gray);font-size:.78rem">${esc(t.category)}</td>
+        <td><span style="display:inline-flex;align-items:center;gap:.4rem;font-size:.78rem;font-weight:600;color:${getClientColor(t.clientId)}">
+          <span style="width:7px;height:7px;border-radius:50%;background:${getClientColor(t.clientId)};flex-shrink:0"></span>
+          ${esc(getClientName(t.clientId))}
+        </span></td>
         <td style="color:var(--gray);font-size:.78rem">${getUserName(t.raisedBy)}</td>
         <td style="color:var(--gray);font-size:.78rem">${getUserName(t.assignedTo)||'Unassigned'}</td>
         <td style="color:var(--gray);font-size:.78rem">${fmtDate(t.createdAt)}</td>
@@ -360,7 +416,10 @@ function openModal(id) {
   document.getElementById('modal-id').textContent    = t.id;
   document.getElementById('modal-title').textContent = t.title;
   document.getElementById('modal-desc').textContent  = t.description;
-  document.getElementById('modal-cat').textContent   = t.category;
+  document.getElementById('modal-cat').textContent    = t.category;
+  const clientEl = document.getElementById('modal-client');
+  clientEl.textContent = getClientName(t.clientId);
+  clientEl.style.color = getClientColor(t.clientId);
   document.getElementById('modal-raised').textContent   = getUserName(t.raisedBy);
   document.getElementById('modal-assignee').textContent = getUserName(t.assignedTo) || 'Unassigned';
   document.getElementById('modal-date').textContent  = fmtDate(t.createdAt);
@@ -515,6 +574,7 @@ document.getElementById('ticket-form').addEventListener('submit', e => {
   } else {
     const newTicket = { id:genId(), title, description:desc, category, priority:selectedPriority,
                         status:'open', raisedBy:currentUser.id, assignedTo:assignee,
+                        clientId: currentUser.clientId || '',
                         createdAt:new Date().toISOString() };
     tickets.push(newTicket);
     save(K.tickets, tickets);
@@ -557,6 +617,9 @@ document.querySelectorAll('.filter-btn').forEach(btn => {
 document.getElementById('priority-filter').addEventListener('change', e => {
   filterPriority = e.target.value; renderTickets();
 });
+document.getElementById('client-filter').addEventListener('change', e => {
+  filterClient = e.target.value; renderTickets();
+});
 document.getElementById('search-input').addEventListener('input', e => {
   searchQuery = e.target.value.toLowerCase().trim();
   if (currentView === 'tickets') renderTickets();
@@ -570,10 +633,13 @@ function renderUsers() {
   tbody.innerHTML = users.map(u => {
     const count = tickets.filter(t => t.raisedBy === u.id || t.assignedTo === u.id).length;
     const isSelf = u.id === currentUser.id;
+    const client = getClients().find(c=>c.id===u.clientId);
     return `<tr>
       <td style="font-family:monospace;font-size:.82rem">${esc(u.username)}</td>
       <td style="font-weight:500">${esc(u.name)}</td>
       <td><span class="role-tag ${u.role}">${roleCap(u.role)}</span></td>
+      <td>${client ? `<span style="display:inline-flex;align-items:center;gap:.4rem;font-size:.8rem;font-weight:600;color:${client.color}">
+        <span style="width:7px;height:7px;border-radius:50%;background:${client.color}"></span>${esc(client.name)}</span>` : '<span style="color:var(--gray)">—</span>'}</td>
       <td style="color:var(--gray)">${count}</td>
       <td>
         <div class="action-btns">
@@ -586,12 +652,19 @@ function renderUsers() {
 }
 
 // Add user modal
+function populateClientDropdown(selectedId='') {
+  const sel = document.getElementById('uf-client');
+  sel.innerHTML = '<option value="">No Client</option>' +
+    getClients().map(c => `<option value="${c.id}" ${selectedId===c.id?'selected':''}>${esc(c.name)}</option>`).join('');
+}
+
 document.getElementById('open-add-user').addEventListener('click', () => {
   editingUserId = null;
   document.getElementById('user-modal-title').textContent = 'Add User';
   document.getElementById('user-submit-btn').textContent  = 'Add User';
   document.getElementById('user-form').reset();
   document.getElementById('pw-req').style.display = 'inline';
+  populateClientDropdown();
   document.getElementById('user-modal-overlay').classList.add('open');
 });
 
@@ -606,6 +679,7 @@ function openEditUser(id) {
   document.getElementById('uf-pass').value     = '';
   document.getElementById('uf-role').value     = u.role;
   document.getElementById('pw-req').style.display = 'none';
+  populateClientDropdown(u.clientId || '');
   document.getElementById('user-modal-overlay').classList.add('open');
 }
 
@@ -615,11 +689,12 @@ document.getElementById('user-form').addEventListener('submit', e => {
   const name     = document.getElementById('uf-name').value.trim();
   const pass     = document.getElementById('uf-pass').value;
   const role     = document.getElementById('uf-role').value;
+  const clientId = document.getElementById('uf-client').value;
   const users    = getUsers();
 
   if (editingUserId) {
     const idx = users.findIndex(u=>u.id===editingUserId);
-    users[idx] = { ...users[idx], username, name, role, ...(pass && { password: pass }) };
+    users[idx] = { ...users[idx], username, name, role, clientId, ...(pass && { password: pass }) };
     // Update session if editing self
     if (editingUserId === currentUser.id) { currentUser = users[idx]; bootApp(currentUser); }
     save(K.users, users);
@@ -627,7 +702,7 @@ document.getElementById('user-form').addEventListener('submit', e => {
   } else {
     if (!pass || pass.length < 6) { alert('Password must be at least 6 characters.'); return; }
     if (users.find(u=>u.username===username)) { alert('Username already exists.'); return; }
-    users.push({ id:'u'+Date.now(), username, name, password:pass, role });
+    users.push({ id:'u'+Date.now(), username, name, password:pass, role, clientId });
     save(K.users, users);
     showToast('User added');
   }
@@ -651,6 +726,107 @@ document.getElementById('user-modal-close').addEventListener('click', closeUserM
 document.getElementById('user-modal-cancel').addEventListener('click', closeUserModal);
 document.getElementById('user-modal-overlay').addEventListener('click', e => {
   if (e.target === document.getElementById('user-modal-overlay')) closeUserModal();
+});
+
+// ── CLIENT MANAGEMENT (Admin) ─────────────────────────────────────────────────
+function renderClients() {
+  const clients = getClients();
+  const tickets = getTickets();
+  const users   = getUsers();
+  const grid    = document.getElementById('client-grid');
+  grid.innerHTML = clients.map(c => {
+    const ticketCount = tickets.filter(t=>t.clientId===c.id).length;
+    const userCount   = users.filter(u=>u.clientId===c.id).length;
+    return `<div class="cat-card">
+      <div class="cat-left">
+        <div class="cat-dot" style="background:${c.color}"></div>
+        <div>
+          <div class="cat-name">${esc(c.name)}</div>
+          <div class="cat-count">${userCount} user${userCount!==1?'s':''} · ${ticketCount} ticket${ticketCount!==1?'s':''}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:.5rem;align-items:center">
+        <button class="btn-icon" onclick="openEditClient('${c.id}')">Edit</button>
+        <button class="cat-del" onclick="deleteClient('${c.id}')" title="Delete">×</button>
+      </div>
+    </div>`;
+  }).join('') || '<p style="color:var(--gray);font-size:.875rem">No clients yet. Add one above.</p>';
+}
+
+let selectedClientColor = '#6c47ff';
+
+document.getElementById('open-add-client').addEventListener('click', () => {
+  document.getElementById('edit-client-id').value = '';
+  document.getElementById('clf-name').value = '';
+  document.getElementById('client-modal-title').textContent = 'Add Client';
+  document.getElementById('client-submit-btn').textContent  = 'Add Client';
+  selectedClientColor = '#6c47ff';
+  document.querySelectorAll('#client-color-options .color-dot').forEach(d =>
+    d.classList.toggle('active', d.dataset.color === '#6c47ff')
+  );
+  document.getElementById('client-modal-overlay').classList.add('open');
+});
+
+function openEditClient(id) {
+  const c = getClients().find(x=>x.id===id);
+  if (!c) return;
+  document.getElementById('edit-client-id').value = id;
+  document.getElementById('clf-name').value = c.name;
+  document.getElementById('client-modal-title').textContent = 'Edit Client';
+  document.getElementById('client-submit-btn').textContent  = 'Save Changes';
+  selectedClientColor = c.color;
+  document.querySelectorAll('#client-color-options .color-dot').forEach(d =>
+    d.classList.toggle('active', d.dataset.color === c.color)
+  );
+  document.getElementById('client-modal-overlay').classList.add('open');
+}
+
+document.getElementById('client-color-options').addEventListener('click', e => {
+  const dot = e.target.closest('.color-dot');
+  if (!dot) return;
+  selectedClientColor = dot.dataset.color;
+  document.querySelectorAll('#client-color-options .color-dot').forEach(d =>
+    d.classList.toggle('active', d === dot)
+  );
+});
+
+document.getElementById('client-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const name    = document.getElementById('clf-name').value.trim();
+  const editId  = document.getElementById('edit-client-id').value;
+  const clients = getClients();
+  if (editId) {
+    const idx = clients.findIndex(c=>c.id===editId);
+    clients[idx] = { ...clients[idx], name, color: selectedClientColor };
+    showToast('Client updated');
+  } else {
+    if (clients.find(c=>c.name.toLowerCase()===name.toLowerCase())) { alert('Client already exists.'); return; }
+    clients.push({ id:'cl'+Date.now(), name, color: selectedClientColor });
+    showToast('Client added');
+  }
+  save(K.clients, clients);
+  closeClientModal();
+  renderClients();
+});
+
+function deleteClient(id) {
+  const ticketCount = getTickets().filter(t=>t.clientId===id).length;
+  const userCount   = getUsers().filter(u=>u.clientId===id).length;
+  if (ticketCount || userCount) {
+    if (!confirm(`This client has ${userCount} user(s) and ${ticketCount} ticket(s). Delete anyway?`)) return;
+  } else {
+    if (!confirm('Delete this client?')) return;
+  }
+  save(K.clients, getClients().filter(c=>c.id!==id));
+  renderClients();
+  showToast('Client deleted', 'error');
+}
+
+function closeClientModal() { document.getElementById('client-modal-overlay').classList.remove('open'); }
+document.getElementById('client-modal-close').addEventListener('click', closeClientModal);
+document.getElementById('client-modal-cancel').addEventListener('click', closeClientModal);
+document.getElementById('client-modal-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('client-modal-overlay')) closeClientModal();
 });
 
 // ── CATEGORY MANAGEMENT (Admin) ───────────────────────────────────────────────
