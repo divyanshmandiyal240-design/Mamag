@@ -3,33 +3,41 @@
 //  Roles: admin | technician | user
 // ═══════════════════════════════════════════════════════════════════════════
 
-// ── WHATSAPP NOTIFICATION CONFIG ────────────────────────────────────────────
-// Uses CallMeBot (free). Follow steps below to get your API key:
-//  1. Save +34644473855 in your WhatsApp contacts (name it "CallMeBot")
-//  2. Send this exact message to that number on WhatsApp:
-//       I allow callmebot to send me messages
-//  3. You will receive your API key in a reply — paste it below.
+// ── WHATSAPP NOTIFICATION CONFIG (Green API) ────────────────────────────────
+// Green API is free and sends real WhatsApp messages from the browser.
+// Setup (5 minutes):
+//  1. Go to https://console.green-api.com and create a free account
+//  2. Click "Create Instance" → choose the FREE Developer plan
+//  3. You will get an idInstance and apiTokenInstance — paste them below
+//  4. In the instance settings, click "Scan QR" and scan with YOUR WhatsApp
+//     (the number that will SEND the message — can be your own number)
+//  5. Once connected, tickets will send a WhatsApp message to +919915999043
 const WA = {
-  phone:  '919915999043',   // your number with country code, no +
-  apiKey: 'YOUR_API_KEY',   // <-- replace with the key you receive from CallMeBot
+  idInstance:       'YOUR_INSTANCE_ID',    // e.g. '1101234567'
+  apiTokenInstance: 'YOUR_API_TOKEN',      // e.g. 'd75b3a...'
+  toNumber:         '919915999043',        // recipient — your number
 };
 
 async function sendWhatsAppAlert(ticket) {
-  if (WA.apiKey === 'YOUR_API_KEY') return; // skip until key is set
-  const msg = encodeURIComponent(
-    `🎫 New Ticket Raised!\n` +
-    `ID: ${ticket.id}\n` +
-    `Title: ${ticket.title}\n` +
-    `Priority: ${ticket.priority.toUpperCase()}\n` +
-    `Category: ${ticket.category}\n` +
-    `Raised By: ${getUserName(ticket.raisedBy)}\n` +
-    `Time: ${new Date().toLocaleString()}`
-  );
+  if (WA.idInstance === 'YOUR_INSTANCE_ID') return; // skip until configured
+  const url = `https://api.green-api.com/waInstance${WA.idInstance}/sendMessage/${WA.apiTokenInstance}`;
+  const body = {
+    chatId: `${WA.toNumber}@c.us`,
+    message:
+      `🎫 *New Ticket Raised!*\n` +
+      `*ID:* ${ticket.id}\n` +
+      `*Title:* ${ticket.title}\n` +
+      `*Priority:* ${ticket.priority.toUpperCase()}\n` +
+      `*Category:* ${ticket.category}\n` +
+      `*Raised By:* ${getUserName(ticket.raisedBy)}\n` +
+      `*Time:* ${new Date().toLocaleString()}`,
+  };
   try {
-    await fetch(
-      `https://api.callmebot.com/whatsapp.php?phone=${WA.phone}&text=${msg}&apikey=${WA.apiKey}`,
-      { mode: 'no-cors' }
-    );
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
   } catch (e) {
     console.warn('WhatsApp notification failed:', e);
   }
