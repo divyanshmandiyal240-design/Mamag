@@ -91,6 +91,11 @@ function getCategories() { return ls(K.categories) || []; }
 function getClients()    { return ls(K.clients)    || []; }
 function getSession()    { return ls(K.session); }
 
+// ── PORTAL DETECTION ─────────────────────────────────────────────────────────
+// Reads ?client=CLIENT_ID from the URL.
+// If present, this page is a client portal — restrict login to that client only.
+const portalClientId = new URLSearchParams(window.location.search).get('client') || null;
+
 // ── APP STATE ────────────────────────────────────────────────────────────────
 let currentUser   = null;
 let currentView   = '';
@@ -174,15 +179,48 @@ const clientIcon = `<svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height
 
 // ── LOGIN ────────────────────────────────────────────────────────────────────
 function initLogin() {
+  // Apply portal branding if ?client= is in the URL
+  if (portalClientId) {
+    const client = getClients().find(c => c.id === portalClientId);
+    if (client) {
+      // Show client banner
+      const banner = document.getElementById('portal-banner');
+      banner.style.display = 'flex';
+      banner.style.borderColor = client.color + '44';
+      banner.style.background  = client.color + '18';
+      document.getElementById('portal-dot').style.background  = client.color;
+      document.getElementById('portal-name').textContent       = client.name;
+      document.getElementById('portal-name').style.color       = client.color;
+      // Update heading
+      document.getElementById('login-heading').textContent    = `Welcome, ${client.name}`;
+      document.getElementById('login-subheading').textContent = 'Sign in to raise and track your tickets';
+      // Update sign-in button color
+      document.getElementById('login-btn').style.background   = client.color;
+      // Hide demo accounts (security — don't expose other creds)
+      document.getElementById('demo-accounts').style.display  = 'none';
+    } else {
+      // Invalid client ID in URL
+      document.getElementById('login-error').textContent = 'Invalid client portal link.';
+    }
+  }
+
   document.getElementById('login-form').addEventListener('submit', e => {
     e.preventDefault();
     const uname = document.getElementById('login-user').value.trim().toLowerCase();
     const pass  = document.getElementById('login-pass').value;
-    const user  = getUsers().find(u => u.username === uname && u.password === pass);
+    let user = getUsers().find(u => u.username === uname && u.password === pass);
+
     if (!user) {
       document.getElementById('login-error').textContent = 'Invalid username or password.';
       return;
     }
+
+    // On a client portal — only allow users belonging to that client
+    if (portalClientId && user.role !== 'admin' && user.clientId !== portalClientId) {
+      document.getElementById('login-error').textContent = 'You are not authorised for this portal.';
+      return;
+    }
+
     save(K.session, { id: user.id });
     document.getElementById('login-error').textContent = '';
     bootApp(user);
@@ -729,28 +767,57 @@ document.getElementById('user-modal-overlay').addEventListener('click', e => {
 });
 
 // ── CLIENT MANAGEMENT (Admin) ─────────────────────────────────────────────────
+function getPortalUrl(clientId) {
+  const base = window.location.href.split('?')[0];
+  return `${base}?client=${clientId}`;
+}
+
 function renderClients() {
   const clients = getClients();
   const tickets = getTickets();
   const users   = getUsers();
   const grid    = document.getElementById('client-grid');
+
+  if (!clients.length) {
+    grid.innerHTML = '<p style="color:var(--gray);font-size:.875rem">No clients yet. Click "+ Add Client" to create one.</p>';
+    return;
+  }
+
   grid.innerHTML = clients.map(c => {
     const ticketCount = tickets.filter(t=>t.clientId===c.id).length;
     const userCount   = users.filter(u=>u.clientId===c.id).length;
-    return `<div class="cat-card">
-      <div class="cat-left">
-        <div class="cat-dot" style="background:${c.color}"></div>
+    const openCount   = tickets.filter(t=>t.clientId===c.id && t.status==='open').length;
+    const portalUrl   = getPortalUrl(c.id);
+    const initials    = c.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+
+    return `<div class="portal-card" style="--client-color:${c.color}">
+      <div class="portal-card-top">
+        <div class="portal-icon" style="background:${c.color}22;color:${c.color}">${initials}</div>
         <div>
-          <div class="cat-name">${esc(c.name)}</div>
-          <div class="cat-count">${userCount} user${userCount!==1?'s':''} · ${ticketCount} ticket${ticketCount!==1?'s':''}</div>
+          <div class="portal-card-name">${esc(c.name)}</div>
+          <div class="portal-card-meta">${userCount} user${userCount!==1?'s':''} · ${ticketCount} ticket${ticketCount!==1?'s':''} · ${openCount} open</div>
         </div>
       </div>
-      <div style="display:flex;gap:.5rem;align-items:center">
+      <div class="portal-link-box">
+        <span class="portal-link-text" id="url-${c.id}">${esc(portalUrl)}</span>
+        <button class="copy-btn" id="copy-${c.id}" onclick="copyPortalUrl('${c.id}')">Copy</button>
+      </div>
+      <div class="portal-card-actions">
         <button class="btn-icon" onclick="openEditClient('${c.id}')">Edit</button>
-        <button class="cat-del" onclick="deleteClient('${c.id}')" title="Delete">×</button>
+        <a href="${esc(portalUrl)}" target="_blank" class="btn-icon" style="text-decoration:none">Open Portal</a>
+        <button class="btn-icon del" onclick="deleteClient('${c.id}')">Delete</button>
       </div>
     </div>`;
-  }).join('') || '<p style="color:var(--gray);font-size:.875rem">No clients yet. Add one above.</p>';
+  }).join('');
+}
+
+function copyPortalUrl(clientId) {
+  const btn = document.getElementById('copy-' + clientId);
+  navigator.clipboard.writeText(getPortalUrl(clientId)).then(() => {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  });
 }
 
 let selectedClientColor = '#6c47ff';

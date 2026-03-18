@@ -15,12 +15,17 @@
 ═══════════════════════════════════════════════════════ -->
 <div class="login-screen" id="login-screen">
   <div class="login-card">
-    <div class="login-logo">
+    <!-- Client portal branding (shown when ?client= param is present) -->
+    <div class="portal-banner" id="portal-banner" style="display:none">
+      <div class="portal-dot" id="portal-dot"></div>
+      <span id="portal-name"></span>
+    </div>
+    <div class="login-logo" id="login-logo">
       <div class="logo-icon">TF</div>
       <span>TicketFlow</span>
     </div>
-    <h2>Sign in to your account</h2>
-    <p class="login-sub">Enter your credentials to continue</p>
+    <h2 id="login-heading">Sign in to your account</h2>
+    <p class="login-sub" id="login-subheading">Enter your credentials to continue</p>
     <form id="login-form">
       <div class="form-group">
         <label>Username</label>
@@ -34,9 +39,10 @@
         </div>
       </div>
       <div class="login-error" id="login-error"></div>
-      <button type="submit" class="btn-primary full">Sign In</button>
+      <button type="submit" class="btn-primary full" id="login-btn">Sign In</button>
     </form>
-    <div class="demo-accounts">
+    <!-- Only shown on main admin URL, hidden on client portals -->
+    <div class="demo-accounts" id="demo-accounts">
       <p>Demo accounts:</p>
       <div class="demo-pills">
         <button class="demo-pill" data-u="admin" data-p="admin123">Admin</button>
@@ -233,10 +239,11 @@
       <!-- ─── ADMIN: CLIENT MANAGEMENT ─── -->
       <div class="view" id="view-clients">
         <div class="page-header">
-          <h1>Clients</h1>
+          <h1>Client Portals</h1>
           <button class="btn-primary" id="open-add-client">+ Add Client</button>
         </div>
-        <div class="cat-grid" id="client-grid"></div>
+        <p class="view-desc">Each client gets a unique login link. Share it with your client — only their users can sign in through that link.</p>
+        <div class="client-portal-grid" id="client-grid"></div>
       </div>
 
       <!-- ─── ADMIN: CATEGORY MANAGEMENT ─── -->
