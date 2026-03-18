@@ -129,6 +129,39 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--whi
 
 .portal-card-actions { display: flex; gap: .5rem; }
 
+/* ── LINK FIELD ROW ── */
+.link-field-row { display: flex; gap: .5rem; align-items: center; }
+.link-field-row input {
+  flex: 1; padding: .65rem .9rem; background: var(--surface2);
+  border: 1px solid var(--accent); border-radius: 10px;
+  color: var(--gray); font-family: monospace; font-size: .78rem;
+  outline: none; cursor: text;
+}
+
+/* ── CLIENT TABLE VIEW ── */
+.client-table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.client-table { width: 100%; border-collapse: collapse; }
+.client-table th {
+  padding: .9rem 1.1rem; text-align: left; font-size: .72rem;
+  font-weight: 600; text-transform: uppercase; letter-spacing: .5px;
+  color: var(--gray); border-bottom: 1px solid var(--border); background: var(--surface2);
+}
+.client-table td { padding: 1rem 1.1rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.client-table tbody tr:last-child td { border-bottom: none; }
+.client-table tbody tr:hover { background: var(--surface2); }
+
+.client-name-cell { display: flex; align-items: center; gap: .75rem; }
+.client-color-badge { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+.client-link-cell { display: flex; align-items: center; gap: .6rem; max-width: 420px; }
+.client-link-input {
+  flex: 1; padding: .5rem .8rem; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: 8px;
+  color: var(--gray); font-family: monospace; font-size: .75rem;
+  outline: none; cursor: text; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.client-link-input:focus { border-color: var(--accent); }
+
 /* ── APP LAYOUT ── */
 .app { display: flex; width: 100%; height: 100vh; }
 

@@ -242,8 +242,8 @@
           <h1>Client Portals</h1>
           <button class="btn-primary" id="open-add-client">+ Add Client</button>
         </div>
-        <p class="view-desc">Each client gets a unique login link. Share it with your client — only their users can sign in through that link.</p>
-        <div class="client-portal-grid" id="client-grid"></div>
+        <p class="view-desc">Each client has a unique portal link. Share it with your client — only their users can sign in through it.</p>
+        <div id="client-grid"></div>
       </div>
 
       <!-- ─── ADMIN: CATEGORY MANAGEMENT ─── -->
@@ -350,7 +350,7 @@
 
 <!-- ═══ ADD CLIENT MODAL ═══ -->
 <div class="modal-overlay" id="client-modal-overlay">
-  <div class="modal" style="max-width:400px">
+  <div class="modal" style="max-width:460px">
     <button class="modal-close" id="client-modal-close">&times;</button>
     <h2 style="margin-bottom:1.5rem" id="client-modal-title">Add Client</h2>
     <form id="client-form">
@@ -372,8 +372,16 @@
           <button type="button" class="color-dot" data-color="#f97316" style="background:#f97316"></button>
         </div>
       </div>
+      <!-- Portal link — shown after client is saved -->
+      <div class="form-group" id="clf-link-group" style="display:none">
+        <label>Portal Link <span style="color:var(--green);font-size:.72rem;font-weight:600">— share this with your client</span></label>
+        <div class="link-field-row">
+          <input type="text" id="clf-link" readonly/>
+          <button type="button" class="copy-btn" id="clf-copy-btn" onclick="copyModalLink()">Copy</button>
+        </div>
+      </div>
       <div class="form-actions">
-        <button type="button" class="btn-secondary" id="client-modal-cancel">Cancel</button>
+        <button type="button" class="btn-secondary" id="client-modal-cancel">Close</button>
         <button type="submit" class="btn-primary" id="client-submit-btn">Add Client</button>
       </div>
     </form>

@@ -779,41 +779,64 @@ function renderClients() {
   const grid    = document.getElementById('client-grid');
 
   if (!clients.length) {
-    grid.innerHTML = '<p style="color:var(--gray);font-size:.875rem">No clients yet. Click "+ Add Client" to create one.</p>';
+    grid.innerHTML = '<div class="client-table-wrap"><p style="padding:2rem;color:var(--gray);font-size:.875rem">No clients yet. Click "+ Add Client" to create one.</p></div>';
     return;
   }
 
-  grid.innerHTML = clients.map(c => {
-    const ticketCount = tickets.filter(t=>t.clientId===c.id).length;
-    const userCount   = users.filter(u=>u.clientId===c.id).length;
-    const openCount   = tickets.filter(t=>t.clientId===c.id && t.status==='open').length;
-    const portalUrl   = getPortalUrl(c.id);
-    const initials    = c.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-
-    return `<div class="portal-card" style="--client-color:${c.color}">
-      <div class="portal-card-top">
-        <div class="portal-icon" style="background:${c.color}22;color:${c.color}">${initials}</div>
-        <div>
-          <div class="portal-card-name">${esc(c.name)}</div>
-          <div class="portal-card-meta">${userCount} user${userCount!==1?'s':''} · ${ticketCount} ticket${ticketCount!==1?'s':''} · ${openCount} open</div>
-        </div>
-      </div>
-      <div class="portal-link-box">
-        <span class="portal-link-text" id="url-${c.id}">${esc(portalUrl)}</span>
-        <button class="copy-btn" id="copy-${c.id}" onclick="copyPortalUrl('${c.id}')">Copy</button>
-      </div>
-      <div class="portal-card-actions">
-        <button class="btn-icon" onclick="openEditClient('${c.id}')">Edit</button>
-        <a href="${esc(portalUrl)}" target="_blank" class="btn-icon" style="text-decoration:none">Open Portal</a>
-        <button class="btn-icon del" onclick="deleteClient('${c.id}')">Delete</button>
-      </div>
+  grid.innerHTML = `
+    <div class="client-table-wrap">
+      <table class="client-table">
+        <thead>
+          <tr>
+            <th>Client</th>
+            <th>Users</th>
+            <th>Tickets</th>
+            <th>Portal Link</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${clients.map(c => {
+            const ticketCount = tickets.filter(t=>t.clientId===c.id).length;
+            const userCount   = users.filter(u=>u.clientId===c.id).length;
+            const openCount   = tickets.filter(t=>t.clientId===c.id && t.status==='open').length;
+            const portalUrl   = getPortalUrl(c.id);
+            return `<tr>
+              <td>
+                <div class="client-name-cell">
+                  <div class="client-color-badge" style="background:${c.color}"></div>
+                  <span style="font-weight:600">${esc(c.name)}</span>
+                </div>
+              </td>
+              <td style="color:var(--gray);font-size:.85rem">${userCount}</td>
+              <td style="font-size:.85rem">
+                <span style="color:var(--gray)">${ticketCount} total</span>
+                ${openCount ? `<span style="color:#ff7070;margin-left:.5rem">${openCount} open</span>` : ''}
+              </td>
+              <td>
+                <div class="client-link-cell">
+                  <input class="client-link-input" type="text" value="${esc(portalUrl)}" readonly
+                    onclick="this.select()" title="Click to select, then copy"/>
+                  <button class="copy-btn" id="copy-${c.id}" onclick="copyPortalUrl('${c.id}','${esc(portalUrl)}')">Copy</button>
+                  <a href="${esc(portalUrl)}" target="_blank" class="btn-icon" style="text-decoration:none;white-space:nowrap">Open ↗</a>
+                </div>
+              </td>
+              <td>
+                <div class="action-btns">
+                  <button class="btn-icon" onclick="openEditClient('${c.id}')">Edit</button>
+                  <button class="btn-icon del" onclick="deleteClient('${c.id}')">Delete</button>
+                </div>
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
     </div>`;
-  }).join('');
 }
 
-function copyPortalUrl(clientId) {
+function copyPortalUrl(clientId, url) {
   const btn = document.getElementById('copy-' + clientId);
-  navigator.clipboard.writeText(getPortalUrl(clientId)).then(() => {
+  navigator.clipboard.writeText(url).then(() => {
     btn.textContent = 'Copied!';
     btn.classList.add('copied');
     setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
@@ -827,6 +850,8 @@ document.getElementById('open-add-client').addEventListener('click', () => {
   document.getElementById('clf-name').value = '';
   document.getElementById('client-modal-title').textContent = 'Add Client';
   document.getElementById('client-submit-btn').textContent  = 'Add Client';
+  document.getElementById('clf-link-group').style.display  = 'none';
+  document.getElementById('clf-link').value = '';
   selectedClientColor = '#6c47ff';
   document.querySelectorAll('#client-color-options .color-dot').forEach(d =>
     d.classList.toggle('active', d.dataset.color === '#6c47ff')
@@ -845,6 +870,9 @@ function openEditClient(id) {
   document.querySelectorAll('#client-color-options .color-dot').forEach(d =>
     d.classList.toggle('active', d.dataset.color === c.color)
   );
+  // Always show portal link when editing
+  document.getElementById('clf-link').value = getPortalUrl(id);
+  document.getElementById('clf-link-group').style.display = 'block';
   document.getElementById('client-modal-overlay').classList.add('open');
 }
 
@@ -862,18 +890,29 @@ document.getElementById('client-form').addEventListener('submit', e => {
   const name    = document.getElementById('clf-name').value.trim();
   const editId  = document.getElementById('edit-client-id').value;
   const clients = getClients();
+  let savedId   = editId;
+
   if (editId) {
     const idx = clients.findIndex(c=>c.id===editId);
     clients[idx] = { ...clients[idx], name, color: selectedClientColor };
     showToast('Client updated');
   } else {
     if (clients.find(c=>c.name.toLowerCase()===name.toLowerCase())) { alert('Client already exists.'); return; }
-    clients.push({ id:'cl'+Date.now(), name, color: selectedClientColor });
-    showToast('Client added');
+    savedId = 'cl' + Date.now();
+    clients.push({ id: savedId, name, color: selectedClientColor });
+    showToast('Client added — copy the portal link below!', 'info');
   }
+
   save(K.clients, clients);
-  closeClientModal();
   renderClients();
+
+  // Show portal link inside the modal
+  const portalUrl = getPortalUrl(savedId);
+  document.getElementById('clf-link').value = portalUrl;
+  document.getElementById('clf-link-group').style.display = 'block';
+  document.getElementById('client-submit-btn').textContent = 'Save Changes';
+  document.getElementById('edit-client-id').value = savedId;
+  document.getElementById('client-modal-title').textContent = 'Client Saved ✓';
 });
 
 function deleteClient(id) {
@@ -887,6 +926,16 @@ function deleteClient(id) {
   save(K.clients, getClients().filter(c=>c.id!==id));
   renderClients();
   showToast('Client deleted', 'error');
+}
+
+function copyModalLink() {
+  const url = document.getElementById('clf-link').value;
+  const btn = document.getElementById('clf-copy-btn');
+  navigator.clipboard.writeText(url).then(() => {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  });
 }
 
 function closeClientModal() { document.getElementById('client-modal-overlay').classList.remove('open'); }
