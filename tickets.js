@@ -3,43 +3,31 @@
 //  Roles: admin | technician | user
 // ═══════════════════════════════════════════════════════════════════════════
 
-// ── WHATSAPP NOTIFICATION CONFIG (Green API) ────────────────────────────────
-// Green API is free and sends real WhatsApp messages from the browser.
-// Setup (5 minutes):
-//  1. Go to https://console.green-api.com and create a free account
-//  2. Click "Create Instance" → choose the FREE Developer plan
-//  3. You will get an idInstance and apiTokenInstance — paste them below
-//  4. In the instance settings, click "Scan QR" and scan with YOUR WhatsApp
-//     (the number that will SEND the message — can be your own number)
-//  5. Once connected, tickets will send a WhatsApp message to +919915999043
-const WA = {
-  idInstance:       'YOUR_INSTANCE_ID',    // e.g. '1101234567'
-  apiTokenInstance: 'YOUR_API_TOKEN',      // e.g. 'd75b3a...'
-  toNumber:         '919915999043',        // recipient — your number
+// ── EMAILJS NOTIFICATION CONFIG ─────────────────────────────────────────────
+// EmailJS sends email alerts when a ticket is raised — no backend needed.
+// Paste your keys below after completing the setup steps.
+const EJS = {
+  publicKey:   'YOUR_PUBLIC_KEY',    // EmailJS → Account → Public Key
+  serviceId:   'YOUR_SERVICE_ID',    // EmailJS → Email Services → Service ID
+  templateId:  'YOUR_TEMPLATE_ID',   // EmailJS → Email Templates → Template ID
 };
 
-async function sendWhatsAppAlert(ticket) {
-  if (WA.idInstance === 'YOUR_INSTANCE_ID') return; // skip until configured
-  const url = `https://api.green-api.com/waInstance${WA.idInstance}/sendMessage/${WA.apiTokenInstance}`;
-  const body = {
-    chatId: `${WA.toNumber}@c.us`,
-    message:
-      `🎫 *New Ticket Raised!*\n` +
-      `*ID:* ${ticket.id}\n` +
-      `*Title:* ${ticket.title}\n` +
-      `*Priority:* ${ticket.priority.toUpperCase()}\n` +
-      `*Category:* ${ticket.category}\n` +
-      `*Raised By:* ${getUserName(ticket.raisedBy)}\n` +
-      `*Time:* ${new Date().toLocaleString()}`,
-  };
+async function sendEmailAlert(ticket) {
+  if (EJS.publicKey === 'YOUR_PUBLIC_KEY') return; // skip until configured
   try {
-    await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
+    await emailjs.send(EJS.serviceId, EJS.templateId, {
+      ticket_id:    ticket.id,
+      ticket_title: ticket.title,
+      priority:     ticket.priority.toUpperCase(),
+      category:     ticket.category,
+      description:  ticket.description,
+      raised_by:    getUserName(ticket.raisedBy),
+      status:       'Open',
+      time:         new Date().toLocaleString(),
+    }, EJS.publicKey);
+    console.log('Email notification sent');
   } catch (e) {
-    console.warn('WhatsApp notification failed:', e);
+    console.warn('Email notification failed:', e);
   }
 }
 
@@ -530,7 +518,7 @@ document.getElementById('ticket-form').addEventListener('submit', e => {
                         createdAt:new Date().toISOString() };
     tickets.push(newTicket);
     save(K.tickets, tickets);
-    sendWhatsAppAlert(newTicket);
+    sendEmailAlert(newTicket);
     showToast('Ticket submitted!');
   }
   editingTicketId = null;
